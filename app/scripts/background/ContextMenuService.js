@@ -5,7 +5,7 @@
     angular.module('soundcloudify.background')
         .service('ContextMenuService', ContextMenuService);
 
-    function ContextMenuService ($rootScope, $http, $q, CorePlayer, PlaylistService, TrackAdapter, StorageService, SearchService, API_ENDPOINT, CLIENT_ID, YOUTUBE_KEY){
+    function ContextMenuService ($rootScope, $http, $q, CorePlayer, NowPlaying, PlaylistService, TrackAdapter, StorageService, SearchService, API_ENDPOINT, CLIENT_ID, YOUTUBE_KEY){
 
         var backgroundPage;
         var targetUrlPatterns;
@@ -62,6 +62,14 @@
                 'onclick': playTrackNext
             });
 
+            chrome.contextMenus.create({
+                'type': 'normal',
+                'title': 'UpLast',
+                'contexts': ['link'],
+                'targetUrlPatterns': targetUrlPatterns,
+                'onclick': playTrackLast
+            });
+
             playlistRootId = chrome.contextMenus.create({
                 'type': 'normal',
                 'title': 'Add To Playlist',
@@ -105,30 +113,43 @@
 
         function playTrack(info, tab)
         {
+            synchronizeClear();
             resolveTrack(info.linkUrl).then(
                 function (track){
-                    queueTrack(track, true);  
+                    queueTrack(track);  
                 }
             )
-             
         };
 
         function playTrackNext(info, tab)
         {
+            synchronizeClear();
             resolveTrack(info.linkUrl).then(
                 function (track) {
-                    queueTrack(track, false);
-            });
-            
+                    queueTrack(track, "next");
+            });  
         };
 
-        function queueTrack(track, playNow)
+        function playTrackLast(info, tab)
         {
-            if(playNow){
-                CorePlayer.add(track, true);
-            }
-            else{
+            synchronizeClear();
+            resolveTrack(info.linkUrl).then(
+                function (track) {
+                    queueTrack(track, "last");
+            }); 
+        };
+
+        function queueTrack(track, position)
+        {
+            if (position == "next") {
                 CorePlayer.playNext(track);
+            }
+            else if (position == "last")
+            {
+                CorePlayer.playLast(track);
+            }
+            else {
+                CorePlayer.add(track, true);
             }
         }
 
@@ -163,6 +184,13 @@
                 });
             }
             return defer.promise;
+        };
+
+        function synchronizeClear() {
+            StorageService.getStorageInstance('nowplaying').getTracks().then(function (tracks){
+                if(tracks.length == 0)
+                    NowPlaying.getTrackIds().trackIds = [];
+            });
         };
 
         function getParameterByName(url,name) {

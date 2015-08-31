@@ -37,12 +37,16 @@
 
         this.add = function(track, andPlay) {
 
+            console.log("playing track now, or should be")
+
             andPlay = andPlay;
 
             if (track) {
                 NowPlaying.addTrack(track).then(function() {
+                    console.log("made it in the promise");
                     if (andPlay) {
                         self.play(0);
+                        console.log("shouldn't have encountered any errors");
                     }
                 });
             }
@@ -54,6 +58,20 @@
         this.playNext = function(track) {
             if (track) {
                 NowPlaying.addTrack(track, this.state.currentIndex + 1);
+            }
+        };
+
+        /**
+         * Add to the end of the current play queue
+         */
+        this.playLast = function(track) { 
+            if (track) {
+                NowPlaying.getTracks().then(function (tracks) {
+                    console.log(tracks);
+                    tracks.push(track);
+                    console.log(tracks);
+                    NowPlaying.addTracks(tracks);   
+                });
             }
         };
 
@@ -102,6 +120,8 @@
                         currentTime: 0,
                         duration: 0
                     });
+
+                    NowPlaying.getTrackIds().trackIds = [];
 
                     Messaging.sendClearMessage();
                     NowPlaying.saveState(self.state);
